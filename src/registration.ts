@@ -1,9 +1,6 @@
 import axios from 'axios';
 import { SIGNAL_SERVER } from './constants';
-import { KEMKeyPair, KyberPreKeyRecord, PrivateKey, SignedPreKeyRecord } from '@signalapp/libsignal-client';
-import { IdentityKeyPair } from '@signalapp/libsignal-client';
-
-
+import { KEMKeyPair, KyberPreKeyRecord, IdentityKeyPair, PrivateKey, SignedPreKeyRecord } from '@signalapp/libsignal-client';
 
 interface KeyGenerationResult {
     registrationId: number;
@@ -17,22 +14,22 @@ interface KeyGenerationResult {
         privateKey: string; // base64
     };
     aciSignedPreKey: {
-        id: number;
+        keyId: number;
         publicKey: string;  // base64
         signature: string;  // base64
     };
     pniSignedPreKey: {
-        id: number;
+        keyId: number;
         publicKey: string;  // base64
         signature: string;  // base64
     };
     aciPqLastResortPreKey: {
-        id: number;
+        keyId: number;
         publicKey: string;  // base64
         signature: string;  // base64
     };
     pniPqLastResortPreKey: {
-        id: number;
+        keyId: number;
         publicKey: string;  // base64
         signature: string;  // base64
     };
@@ -107,24 +104,24 @@ async function generateKeys(): Promise<KeyGenerationResult> {
             privateKey: pniIdentityKeyPair.privateKey.serialize().toString('base64')
         },
         aciSignedPreKey: {
-            id: aciSignedPreKey.id(),
+            keyId: aciSignedPreKey.id(),
             // Use proper serialization for signed pre-keys
             publicKey: aciSignedPreKey.publicKey().serialize().toString('base64'),
             signature: Buffer.from(aciSignedPreKey.signature()).toString('base64')
         },
         pniSignedPreKey: {
-            id: pniSignedPreKey.id(),
+            keyId: pniSignedPreKey.id(),
             publicKey: pniSignedPreKey.publicKey().serialize().toString('base64'),
             signature: Buffer.from(pniSignedPreKey.signature()).toString('base64')
         },
         aciPqLastResortPreKey: {
-            id: aciKyberPreKey.id(),
+            keyId: aciKyberPreKey.id(),
             // Use proper serialization for Kyber pre-keys
             publicKey: aciKyberPreKey.publicKey().serialize().toString('base64'),
             signature: Buffer.from(aciKyberPreKey.signature()).toString('base64')
         },
         pniPqLastResortPreKey: {
-            id: pniKyberPreKey.id(),
+            keyId: pniKyberPreKey.id(),
             publicKey: pniKyberPreKey.publicKey().serialize().toString('base64'),
             signature: Buffer.from(pniKyberPreKey.signature()).toString('base64')
         }
@@ -147,26 +144,6 @@ async function buildRegistrationRequest(
 ) {
     const keys = await generateKeys();
 
-    // First create the device activation request exactly as Signal-Android does
-    const deviceActivationRequest = {
-        // Note: These must be direct properties, not nested objects
-        aciSignedPreKeyId: keys.aciSignedPreKey.id,
-        aciSignedPreKeyPublic: keys.aciSignedPreKey.publicKey,
-        aciSignedPreKeySignature: keys.aciSignedPreKey.signature,
-
-        pniSignedPreKeyId: keys.pniSignedPreKey.id,
-        pniSignedPreKeyPublic: keys.pniSignedPreKey.publicKey,
-        pniSignedPreKeySignature: keys.pniSignedPreKey.signature,
-
-        aciPqLastResortPreKeyId: keys.aciPqLastResortPreKey.id,
-        aciPqLastResortPreKeyPublic: keys.aciPqLastResortPreKey.publicKey,
-        aciPqLastResortPreKeySignature: keys.aciPqLastResortPreKey.signature,
-
-        pniPqLastResortPreKeyId: keys.pniPqLastResortPreKey.id,
-        pniPqLastResortPreKeyPublic: keys.pniPqLastResortPreKey.publicKey,
-        pniPqLastResortPreKeySignature: keys.pniPqLastResortPreKey.signature
-    };
-
     // Create the complete request object
     const request = {
         sessionId,
@@ -186,30 +163,33 @@ async function buildRegistrationRequest(
         },
         aciIdentityKey: keys.aciIdentityKey.publicKey,
         pniIdentityKey: keys.pniIdentityKey.publicKey,
-        deviceActivationRequest
+        deviceActivationRequest: {
+            aciSignedPreKey: keys.aciSignedPreKey,
+            pniSignedPreKey: keys.pniSignedPreKey,
+            aciPqLastResortPreKey: keys.aciPqLastResortPreKey,
+            pniPqLastResortPreKey: keys.pniPqLastResortPreKey
+        }
     };
 
     // Validate the request structure
-    console.log('Device Activation Request:', JSON.stringify(deviceActivationRequest, null, 2));
+    console.log('Request object:', JSON.stringify(request, null, 2));
 
-    const headers = {
-        'Authorization': `Basic ${Buffer.from(`${request.number}:${request.password}`).toString('base64')}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Signal-Android/6.34.0'
-    };
-
-    return { request, headers };
+    return request;
 }
 
 export async function registerUser(phoneNumber: string, password: string, sessionId: string, fcmToken: string) {
     try {
-        const { request, headers } = await buildRegistrationRequest(sessionId, password, fcmToken, phoneNumber);
+        const request = await buildRegistrationRequest(sessionId, password, fcmToken, phoneNumber);
 
         const registrationResponse = await axios.post(
             `${SIGNAL_SERVER}/v1/registration`,
             request,
-            { headers }
+            {
+                headers: {
+                    'Authorization': `Basic ${Buffer.from(`${phoneNumber}:${password}`).toString('base64')}`,
+                    'Content-Type': 'application/json',
+                }
+            }
         );
 
         return registrationResponse.data;

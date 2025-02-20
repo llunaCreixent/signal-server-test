@@ -8,7 +8,6 @@ export async function createVerificationSession(phoneNumber: string) {
             number: phoneNumber
         });
         console.log('✅ Session created');
-        console.log(response.data);
         
         return response.data;
     } catch (error: any) {
@@ -28,7 +27,6 @@ export async function requestVerificationCode(sessionId: string, transport = 'SM
             }
         );
         console.log('✅ Verification code requested');
-        console.log(response.data);
         
         return response.data;
     } catch (error: any) {
@@ -49,7 +47,6 @@ export async function submitVerificationCode(sessionId: string, code: string) {
             { code }
         );
         console.log('✅ Code verified');
-        console.log(response.data);
         
         return response.data;
     } catch (error: any) {
@@ -68,7 +65,6 @@ export async function updateVerificationSession(sessionId: string) {
             }
         );
         console.log('✅ Captcha verified');
-        console.log(response.data);
         
         return response.data;
     } catch (error: any) {
