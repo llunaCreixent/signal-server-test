@@ -1,5 +1,6 @@
 import { createVerificationSession, requestVerificationCode, submitVerificationCode, updateVerificationSession } from './verification';
 import { registerUser } from './registration';
+import { generateCdsiCredentials } from './contactDiscovery';
 
 interface VerificationSession {
     id: string;
@@ -9,6 +10,10 @@ interface VerificationSession {
 
 interface VerifiedSession {
     verified: boolean;
+}
+
+interface RegistrationResponse {
+    uuid: string;
 }
 
 async function main() {
@@ -39,8 +44,12 @@ async function main() {
                     password, 
                     session.id, 
                     "fcm-token-test"
-                );
+                ) as RegistrationResponse;
                 console.log('✅ Registration complete:', registration);
+
+                // Step 5: Generate Contact Discovery Service credentials
+                const auth = await generateCdsiCredentials(password, registration.uuid);
+                console.log('✅ Auth complete:', auth);
             } else {
                 throw new Error('Session verification failed');
             }
