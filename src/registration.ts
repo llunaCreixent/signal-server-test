@@ -46,32 +46,30 @@ async function generateKeys(): Promise<KeyGenerationResult> {
     const registrationId = Math.floor(Math.random() * 16380) + 1;
     const pniRegistrationId = Math.floor(Math.random() * 16380) + 1;
 
-    // Generate identity keys using proper libsignal methods
+    // Generate identity keys
     const aciIdentityKeyPair = IdentityKeyPair.generate();
     const pniIdentityKeyPair = IdentityKeyPair.generate();
 
-    // Generate signed pre-keys with proper serialization
+    // Generate signed pre-keys
     const aciSignedPreKeyId = generatePreKeyId();
-    const aciKeyPair = PrivateKey.generate();
     const aciSignedPreKey = SignedPreKeyRecord.new(
         aciSignedPreKeyId,
         Math.floor(Date.now() / 1000),
-        aciKeyPair.getPublicKey(),
-        aciKeyPair,
-        aciIdentityKeyPair.privateKey.sign(aciKeyPair.getPublicKey().serialize())
+        aciIdentityKeyPair.publicKey,
+        aciIdentityKeyPair.privateKey,
+        aciIdentityKeyPair.privateKey.sign(aciIdentityKeyPair.publicKey.serialize())
     );
 
     const pniSignedPreKeyId = generatePreKeyId();
-    const pniKeyPair = PrivateKey.generate();
     const pniSignedPreKey = SignedPreKeyRecord.new(
         pniSignedPreKeyId,
         Math.floor(Date.now() / 1000),
-        pniKeyPair.getPublicKey(),
-        pniKeyPair,
-        pniIdentityKeyPair.privateKey.sign(pniKeyPair.getPublicKey().serialize())
+        pniIdentityKeyPair.publicKey,
+        pniIdentityKeyPair.privateKey,
+        pniIdentityKeyPair.privateKey.sign(pniIdentityKeyPair.publicKey.serialize())
     );
 
-    // Generate Kyber pre-keys with proper serialization
+    // Generate Kyber pre-keys
     const aciKyberPreKeyId = generatePreKeyId();
     const aciKyberKeyPair = KEMKeyPair.generate();
     const aciKyberPreKey = KyberPreKeyRecord.new(
@@ -90,12 +88,11 @@ async function generateKeys(): Promise<KeyGenerationResult> {
         pniIdentityKeyPair.privateKey.sign(pniKyberKeyPair.getPublicKey().serialize())
     );
 
-    // Properly serialize all keys using libsignal methods
+    // Serialize keys
     const result = {
         registrationId,
         pniRegistrationId,
         aciIdentityKey: {
-            // Use proper serialization for identity keys
             publicKey: aciIdentityKeyPair.publicKey.serialize().toString('base64'),
             privateKey: aciIdentityKeyPair.privateKey.serialize().toString('base64')
         },
@@ -105,7 +102,6 @@ async function generateKeys(): Promise<KeyGenerationResult> {
         },
         aciSignedPreKey: {
             keyId: aciSignedPreKey.id(),
-            // Use proper serialization for signed pre-keys
             publicKey: aciSignedPreKey.publicKey().serialize().toString('base64'),
             signature: Buffer.from(aciSignedPreKey.signature()).toString('base64')
         },
@@ -116,7 +112,6 @@ async function generateKeys(): Promise<KeyGenerationResult> {
         },
         aciPqLastResortPreKey: {
             keyId: aciKyberPreKey.id(),
-            // Use proper serialization for Kyber pre-keys
             publicKey: aciKyberPreKey.publicKey().serialize().toString('base64'),
             signature: Buffer.from(aciKyberPreKey.signature()).toString('base64')
         },
