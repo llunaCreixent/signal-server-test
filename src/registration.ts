@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { SIGNAL_SERVER } from './constants';
-import { KEMKeyPair, KyberPreKeyRecord, IdentityKeyPair, PrivateKey, SignedPreKeyRecord } from '@signalapp/libsignal-client';
+import { KEMKeyPair, KyberPreKeyRecord, IdentityKeyPair, SignedPreKeyRecord } from '@signalapp/libsignal-client';
 
 interface KeyGenerationResult {
     registrationId: number;
@@ -38,6 +38,7 @@ interface KeyGenerationResult {
 function generatePreKeyId() {
     return Math.floor(Math.random() * 16777215) + 1;
 }
+
 
 async function generateKeys(): Promise<KeyGenerationResult> {
     console.log('🔑 Generating key pairs...');
@@ -93,31 +94,31 @@ async function generateKeys(): Promise<KeyGenerationResult> {
         registrationId,
         pniRegistrationId,
         aciIdentityKey: {
-            publicKey: aciIdentityKeyPair.publicKey.serialize().toString('base64'),
-            privateKey: aciIdentityKeyPair.privateKey.serialize().toString('base64')
+            publicKey: Buffer.from(aciIdentityKeyPair.publicKey.serialize()).toString('base64'),
+            privateKey: Buffer.from(aciIdentityKeyPair.privateKey.serialize()).toString('base64')
         },
         pniIdentityKey: {
-            publicKey: pniIdentityKeyPair.publicKey.serialize().toString('base64'),
-            privateKey: pniIdentityKeyPair.privateKey.serialize().toString('base64')
+            publicKey: Buffer.from(pniIdentityKeyPair.publicKey.serialize()).toString('base64'),
+            privateKey: Buffer.from(pniIdentityKeyPair.privateKey.serialize()).toString('base64')
         },
         aciSignedPreKey: {
             keyId: aciSignedPreKey.id(),
-            publicKey: aciSignedPreKey.publicKey().serialize().toString('base64'),
+            publicKey: Buffer.from(aciSignedPreKey.publicKey().serialize()).toString('base64'),
             signature: Buffer.from(aciSignedPreKey.signature()).toString('base64')
         },
         pniSignedPreKey: {
             keyId: pniSignedPreKey.id(),
-            publicKey: pniSignedPreKey.publicKey().serialize().toString('base64'),
+            publicKey: Buffer.from(pniSignedPreKey.publicKey().serialize()).toString('base64'),
             signature: Buffer.from(pniSignedPreKey.signature()).toString('base64')
         },
         aciPqLastResortPreKey: {
             keyId: aciKyberPreKey.id(),
-            publicKey: aciKyberPreKey.publicKey().serialize().toString('base64'),
+            publicKey: Buffer.from(aciKyberPreKey.publicKey().serialize()).toString('base64'),
             signature: Buffer.from(aciKyberPreKey.signature()).toString('base64')
         },
         pniPqLastResortPreKey: {
             keyId: pniKyberPreKey.id(),
-            publicKey: pniKyberPreKey.publicKey().serialize().toString('base64'),
+            publicKey: Buffer.from(pniKyberPreKey.publicKey().serialize()).toString('base64'),
             signature: Buffer.from(pniKyberPreKey.signature()).toString('base64')
         }
     };
@@ -158,12 +159,12 @@ async function buildRegistrationRequest(
         },
         aciIdentityKey: keys.aciIdentityKey.publicKey,
         pniIdentityKey: keys.pniIdentityKey.publicKey,
-        deviceActivationRequest: {
+        // deviceActivationRequest: {
             aciSignedPreKey: keys.aciSignedPreKey,
             pniSignedPreKey: keys.pniSignedPreKey,
             aciPqLastResortPreKey: keys.aciPqLastResortPreKey,
             pniPqLastResortPreKey: keys.pniPqLastResortPreKey
-        }
+        // }
     };
 
     // Validate the request structure
